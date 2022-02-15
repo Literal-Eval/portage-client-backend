@@ -1,0 +1,115 @@
+#include "ftp.h"
+
+FTP::FTP(QObject *parent) : QObject(parent)
+{
+    QObject::connect(&controlSocket, &QTcpSocket::readyRead, this, &FTP::controlReadyRead);
+    QObject::connect(&dataServer, &QTcpServer::newConnection, this, &FTP::serverNewConnection);
+
+    currentFile.setFileName("out.txt");
+    currentFile.open(QIODevice::Append);
+
+    if (currentFile.isOpen()) {
+        std::cout << "File opened successfully\n";
+    }
+}
+
+void FTP::newCommand(std::string cmd) {
+    if (cmd == "START") {
+
+        QObject::connect(&controlSocket, &QTcpSocket::connected, [&] () {
+            std::cout << "Socket connected\n";
+        });
+
+        QObject::connect(&controlSocket, &QTcpSocket::errorOccurred,
+                         [] (QAbstractSocket::SocketError error)
+        {
+            qDebug() << error;
+        });
+
+        controlSocket.connectToHost(ftp_ip, ftp_port);
+        controlSocket.waitForConnected();
+
+        std::string userName;
+        std::string password;
+
+        qInfo() << "USER: ";
+        std::cin >> userName;
+
+        controlSocket.write(("USER " + userName + "\r\n").c_str());
+        controlSocket.waitForBytesWritten();
+        controlSocket.waitForReadyRead();
+        controlReadyRead();
+
+        qInfo() << "PASS: ";
+        std::cin >> password;
+
+        controlSocket.write(("PASS " + password + "\r\n").c_str());
+    }
+
+    else if (cmd == "QUIT") {
+        controlSocket.write("QUIT\r\n");
+        closeSockets();
+    }
+
+    else if (cmd == "PASV") {
+        nextPassiveCmd = true;
+        controlSocket.write("PASV\r\n");
+    }
+
+    else {
+        if (cmd != "\n")
+        controlSocket.write((cmd + "\r\n").c_str());
+    }
+
+    controlSocket.waitForBytesWritten();
+    controlSocket.waitForReadyRead();
+}
+
+void FTP::controlReadyRead() {
+    QString res;
+    while (controlSocket.bytesAvailable()) {
+        res += controlSocket.readAll();
+    }
+
+    if (nextPassiveCmd) {
+        setPassiveMode(res);
+        nextPassiveCmd = false;
+    }
+
+    qInfo() << "Server: " << res;
+}
+
+void FTP::serverNewConnection() {
+    dataSocket = dataServer.nextPendingConnection();
+    QObject::connect(dataSocket, &QTcpSocket::readyRead, this, &FTP::dataReadyRead);
+}
+
+void FTP::setPassiveMode(QString res) {
+    int startPos {0};
+
+    for (int i {0}; i < res.length(); i++) {
+        if (res[i] == '(') {
+            startPos = i + 1;
+        }
+    }
+
+    QString ipData = res.mid(startPos);
+    ipData = ipData.mid(0, ipData.length() - 3);
+    qInfo() << ipData;
+}
+
+void FTP::dataReadyRead() {
+    currentFile.write(dataSocket->readAll());
+}
+
+void FTP::closeSockets() {
+    if (controlSocket.isOpen())     controlSocket.close();
+    if (dataServer.isListening())   dataServer.close();
+    if (dataSocket)                 dataSocket->close();
+
+    currentFile.close();
+}
+
+FTP::~FTP() {
+    closeSockets();
+}
