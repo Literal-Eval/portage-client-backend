@@ -8,8 +8,8 @@ FTP::FTP(QObject *parent) : QObject(parent)
     currentFile.setFileName("out.txt");
     currentFile.open(QIODevice::Append);
 
-    if (currentFile.isOpen()) {
-        std::cout << "File opened successfully\n";
+    if (!currentFile.isOpen()) {
+        std::cout << "Error creating file\n";
     }
 }
 
@@ -96,6 +96,24 @@ void FTP::setPassiveMode(QString res) {
     QString ipData = res.mid(startPos);
     ipData = ipData.mid(0, ipData.length() - 3);
     qInfo() << ipData;
+
+    QStringList ipSplit = ipData.split(',');
+
+    QHostAddress remoteIp {ipSplit[0] + '.'
+                            + ipSplit[1] + '.'
+                            + ipSplit[2] + '.'
+                            + ipSplit[3]};
+    int remotePort {(ipSplit[4].toInt() << 8) | ipSplit[5].toInt()};
+
+    dataSocket = new QTcpSocket;
+    dataSocket->connectToHost(remoteIp, remotePort);
+
+    QObject::connect(dataSocket, &QTcpSocket::connected, [&] () {
+        qInfo() << "Data socket connected with " << dataSocket->localAddress()
+                << " at port " << dataSocket->localPort();
+    });
+
+    QObject::connect(dataSocket, &QTcpSocket::readyRead, this, &FTP::dataReadyRead);
 }
 
 void FTP::dataReadyRead() {
