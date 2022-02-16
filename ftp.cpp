@@ -13,8 +13,8 @@ FTP::FTP(QObject *parent) : QObject(parent)
     }
 }
 
-void FTP::newCommand(std::string cmd) {
-    if (cmd == "START") {
+void FTP::newCommand(QString cmd) {
+    if (cmd.toUpper() == "START") {
 
         QObject::connect(&controlSocket, &QTcpSocket::connected, [&] () {
             std::cout << "Socket connected\n";
@@ -46,19 +46,19 @@ void FTP::newCommand(std::string cmd) {
         controlSocket.write(("PASS " + password + "\r\n").c_str());
     }
 
-    else if (cmd == "QUIT") {
+    else if (cmd.toUpper() == "QUIT") {
         controlSocket.write("QUIT\r\n");
         closeSockets();
     }
 
-    else if (cmd == "PASV") {
+    else if (cmd.toUpper() == "PASV") {
         nextPassiveCmd = true;
         controlSocket.write("PASV\r\n");
     }
 
     else {
         if (cmd != "\n")
-        controlSocket.write((cmd + "\r\n").c_str());
+        controlSocket.write((cmd + "\r\n").toStdString().c_str());
     }
 
     controlSocket.waitForBytesWritten();
@@ -113,7 +113,7 @@ void FTP::setPassiveMode(QString res) {
         qInfo() << "Data socket connected with " << dataSocket->localAddress()
                 << " at port " << dataSocket->localPort();
 
-        dataSocket->waitForReadyRead();
+//        dataSocket->waitForReadyRead();
     });
 
     QObject::connect(dataSocket, &QTcpSocket::readyRead, this, &FTP::dataReadyRead);

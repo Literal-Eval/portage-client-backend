@@ -1,6 +1,8 @@
 #include <QCoreApplication>
 #include <QThread>
 
+#include <QConsoleListener>
+
 #include "ftp.h"
 #include "input.h"
 
@@ -9,20 +11,24 @@ int main(int argc, char *argv[])
     QCoreApplication a(argc, argv);
 
     QThread ftpThread;
-    QThread inputThread;
 
     FTP ftp;
-    ftp.moveToThread(&ftpThread);
-    ftpThread.start();
 
-    Input input {&ftp};
-    input.moveToThread(&inputThread);
-    inputThread.start();
+    QConsoleListener console;
+    QObject::connect(&console, &QConsoleListener::newLine,
+    [&](const QString &strNewLine) {
 
-    input.listen();
+        if (strNewLine.toUpper() == "QUIT") {
+            ftp.newCommand("QUIT");
+            exit(0);
+        }
 
-    ftpThread.quit();
-    inputThread.quit();
-    exit(0);
+        else {
+            ftp.newCommand(strNewLine);
+        }
+
+        std::cout << "Client: ";
+    });
+
     return a.exec();
 }

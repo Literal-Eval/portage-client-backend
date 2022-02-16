@@ -16,6 +16,7 @@ public:
     explicit Input(FTP* ftp);
 
     void listen();
+    void ioCheck();
 
 signals:
 

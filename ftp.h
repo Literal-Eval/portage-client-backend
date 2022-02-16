@@ -33,7 +33,7 @@ public:
     explicit FTP(QObject *parent = nullptr);
     ~FTP();
 
-    void newCommand(std::string cmd);
+    void newCommand(QString cmd);
     void setPassiveMode(QString res);
     void closeSockets();
 

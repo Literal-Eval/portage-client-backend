@@ -5,6 +5,12 @@ Input::Input(FTP* ftp) : QObject(nullptr)
     this->ftp = ftp;
 }
 
+void Input::ioCheck() {
+    std::cout << "Enter from Input ";
+    std::string name;
+    std::cin >> name;
+}
+
 void Input::listen()
 {
     bool isRunning {true};
@@ -21,7 +27,7 @@ void Input::listen()
         }
 
         else {
-            ftp->newCommand(input);
+            ftp->newCommand(QString::fromStdString(input));
         }
     }
 }
