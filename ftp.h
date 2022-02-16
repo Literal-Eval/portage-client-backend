@@ -6,8 +6,6 @@
 #include <QTcpSocket>
 #include <QTcpServer>
 #include <QHostAddress>
-#include <QNetworkProxy>
-
 #include <QFile>
 
 #include <iostream>

@@ -10,6 +10,7 @@ CONFIG -= app_bundle
 
 SOURCES += \
         ftp.cpp \
+        input.cpp \
         main.cpp
 
 # Default rules for deployment.
@@ -18,4 +19,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    ftp.h
+    ftp.h \
+    input.h

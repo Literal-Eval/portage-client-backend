@@ -76,6 +76,7 @@ void FTP::controlReadyRead() {
         nextPassiveCmd = false;
     }
 
+    if (res == "") return;
     qInfo() << "Server: " << res;
 }
 
@@ -95,7 +96,7 @@ void FTP::setPassiveMode(QString res) {
 
     QString ipData = res.mid(startPos);
     ipData = ipData.mid(0, ipData.length() - 3);
-    qInfo() << ipData;
+//    qInfo() << ipData;
 
     QStringList ipSplit = ipData.split(',');
 
@@ -111,13 +112,20 @@ void FTP::setPassiveMode(QString res) {
     QObject::connect(dataSocket, &QTcpSocket::connected, [&] () {
         qInfo() << "Data socket connected with " << dataSocket->localAddress()
                 << " at port " << dataSocket->localPort();
+
+        dataSocket->waitForReadyRead();
     });
 
     QObject::connect(dataSocket, &QTcpSocket::readyRead, this, &FTP::dataReadyRead);
 }
 
 void FTP::dataReadyRead() {
-    currentFile.write(dataSocket->readAll());
+    while (dataSocket->bytesAvailable()) {
+        currentFile.write(dataSocket->readAll());
+    }
+
+    qInfo() << "Reading from data socket";
+    controlReadyRead();
 }
 
 void FTP::closeSockets() {

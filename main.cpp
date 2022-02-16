@@ -2,36 +2,27 @@
 #include <QThread>
 
 #include "ftp.h"
+#include "input.h"
 
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
     QThread ftpThread;
+    QThread inputThread;
 
     FTP ftp;
-    bool isRunning {true};
-    std::string input;
-
     ftp.moveToThread(&ftpThread);
     ftpThread.start();
 
-    while (isRunning) {
-        qInfo() << "Client: ";
-        std::cin >> input;
-        input = QString::fromStdString(input).toUpper().toStdString();
+    Input input {&ftp};
+    input.moveToThread(&inputThread);
+    inputThread.start();
 
-        if (input == "QUIT") {
-            ftp.newCommand("QUIT");
-            isRunning = false;
-        }
-
-        else {
-            ftp.newCommand(input);
-        }
-    }
+    input.listen();
 
     ftpThread.quit();
+    inputThread.quit();
     exit(0);
     return a.exec();
 }
